@@ -37,12 +37,12 @@ require (
 	github.com/go-git/go-git/v5 v5.4.2
 	github.com/go-kit/kit v0.11.0
 	github.com/go-openapi/strfmt v0.21.2
-	github.com/go-redis/redis/v8 v8.11.4
+	github.com/go-redis/redis/v8 v8.11.5
 	github.com/go-sourcemap/sourcemap v2.1.3+incompatible
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/go-stack/stack v1.8.1
 	github.com/gobwas/glob v0.2.3
-	github.com/gofrs/uuid v4.2.0+incompatible
+	github.com/gofrs/uuid v4.2.0+incompatible // indirect
 	github.com/gogo/protobuf v1.3.2
 	github.com/golang/mock v1.6.0
 	github.com/golang/snappy v0.0.4
