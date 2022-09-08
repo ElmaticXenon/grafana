@@ -1,75 +1,46 @@
 import React, { FC } from 'react';
 
-import { config } from '@grafana/runtime';
 import { Icon, IconName } from '@grafana/ui';
 
 export interface FooterLink {
   text: string;
-  id?: string;
-  icon?: IconName;
+  icon?: string;
   url?: string;
+  target?: string;
 }
 
 export let getFooterLinks = (): FooterLink[] => {
   return [
     {
-      text: 'Documentation',
+      text: 'Dokumentation',
       icon: 'document-info',
-      url: 'https://grafana.com/docs/grafana/latest/?utm_source=grafana_footer',
+      url: 'https://doc.elmatic-align.de',
+      target: '_blank',
     },
     {
       text: 'Support',
       icon: 'question-circle',
-      url: 'https://grafana.com/products/enterprise/?utm_source=grafana_footer',
+      url: 'https://support.elmatic-align.de',
+      target: '_blank',
     },
     {
-      text: 'Community',
+      text: 'Elmatic',
       icon: 'comments-alt',
-      url: 'https://community.grafana.com/?utm_source=grafana_footer',
+      url: 'https://www.elmatic.de',
+      target: '_blank',
     },
   ];
 };
 
-export function getVersionMeta(version: string) {
-  const containsHyphen = version.includes('-');
-  const isBeta = version.includes('-beta');
-
-  return {
-    hasReleaseNotes: !containsHyphen || isBeta,
-    isBeta,
-  };
-}
-
 export let getVersionLinks = (): FooterLink[] => {
-  const { buildInfo, licenseInfo } = config;
   const links: FooterLink[] = [];
-  const stateInfo = licenseInfo.stateInfo ? ` (${licenseInfo.stateInfo})` : '';
 
-  links.push({ text: `${buildInfo.edition}${stateInfo}`, url: licenseInfo.licenseUrl });
-
-  if (buildInfo.hideVersion) {
-    return links;
-  }
-
-  const { hasReleaseNotes, isBeta } = getVersionMeta(buildInfo.version);
-  const versionSlug = buildInfo.version.replace(/\./g, '-'); // replace all periods with hyphens
-  const docsVersion = isBeta ? 'next' : 'latest';
-
+  //links.push({ text: `${buildInfo.edition}${stateInfo}`, url: licenseInfo.licenseUrl });
   links.push({
-    text: `v${buildInfo.version} (${buildInfo.commit})`,
-    url: hasReleaseNotes
-      ? `https://grafana.com/docs/grafana/${docsVersion}/release-notes/release-notes-${versionSlug}/`
-      : undefined,
+    text: `Ausloggen`,
+    url:
+'https://auth.elmatic-xenon.de/auth/realms/Xenon/protocol/openid-connect/logout?redirect_uri=http%3A%2F%2Fcloud.elmatic-xenon.de%2Flogin%2Fgeneric_oauth',
   });
-
-  if (buildInfo.hasUpdate) {
-    links.push({
-      id: 'updateVersion',
-      text: `New version available!`,
-      icon: 'download-alt',
-      url: 'https://grafana.com/grafana/download?utm_source=grafana_footer',
-    });
-  }
 
   return links;
 };
@@ -91,7 +62,9 @@ export const Footer: FC = React.memo(() => {
         <ul>
           {links.map((link) => (
             <li key={link.text}>
-              <FooterItem item={link} />
+              <a href={link.url} target={link.target} rel="noopener">
+                {link.icon && <Icon name={link.icon as IconName} />} {link.text}
+              </a>
             </li>
           ))}
         </ul>
@@ -101,19 +74,3 @@ export const Footer: FC = React.memo(() => {
 });
 
 Footer.displayName = 'Footer';
-
-function FooterItem({ item }: { item: FooterLink }) {
-  const content = item.url ? (
-    <a href={item.url} target="_blank" rel="noopener noreferrer" id={item.id}>
-      {item.text}
-    </a>
-  ) : (
-    item.text
-  );
-
-  return (
-    <>
-      {item.icon && <Icon name={item.icon} />} {content}
-    </>
-  );
-}
