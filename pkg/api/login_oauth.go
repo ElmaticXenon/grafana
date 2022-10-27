@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
+	"strings"
 
 	"golang.org/x/oauth2"
 
@@ -262,17 +264,27 @@ func (hs *HTTPServer) OAuthLogin(ctx *models.ReqContext) {
 func (hs *HTTPServer) buildExternalUserInfo(token *oauth2.Token, userInfo *social.BasicUserInfo, name string) *models.ExternalUserInfo {
 	oauthLogger.Debug("Building external user info from OAuth user info")
 
+	//*********This enables being Grafana server admin via Oauth********
+	// allow_assign_grafana_admin has to be set to true in the config to enable this
+	grafAdmin := false
+	if userInfo.Role == "GrafanaAdmin" {
+		grafAdmin = true
+	}
 	extUser := &models.ExternalUserInfo{
-		AuthModule: fmt.Sprintf("oauth_%s", name),
-		OAuthToken: token,
-		AuthId:     userInfo.Id,
-		Name:       userInfo.Name,
-		Login:      userInfo.Login,
-		Email:      userInfo.Email,
-		OrgRoles:   map[int64]org.RoleType{},
-		Groups:     userInfo.Groups,
+		AuthModule:     fmt.Sprintf("oauth_%s", name),
+		OAuthToken:     token,
+		AuthId:         userInfo.Id,
+		Name:           userInfo.Name,
+		Login:          userInfo.Login,
+		Email:          userInfo.Email,
+		OrgRoles:       map[int64]org.RoleType{},
+		Groups:         userInfo.Groups,
+		IsGrafanaAdmin: &grafAdmin,
 	}
 
+	// We have to make sure to set hs.Cfg.OAuthSkipOrgRoleUpdateSync to true by setting oauth_skip_role_update_sync in
+	// the config file accordingly. That enables us to get to the new hack using groups that are apparently not being used (yet?)
+	// by the rest of the application to map them to Orgs.
 	if userInfo.Role != "" && !hs.Cfg.OAuthSkipOrgRoleUpdateSync {
 		rt := org.RoleType(userInfo.Role)
 		if rt.IsValid() {
@@ -288,6 +300,20 @@ func (hs *HTTPServer) buildExternalUserInfo(token *oauth2.Token, userInfo *socia
 					"role", userInfo.Role, "orgId", orgID)
 			}
 			extUser.OrgRoles[orgID] = rt
+		}
+	} else {
+		// The structure of the group attribute is supposted to be as follows:
+		// <OrgId>:<RoleType> -> 1:admin 2:viewer [...]
+		for _, orgGroup := range userInfo.Groups {
+			// split the pairs apart
+			orgGroupSplit := strings.Fields(strings.ReplaceAll(orgGroup, ":", " "))
+			if len(orgGroupSplit) == 0 {
+				plog.Debug("Some went wrong reading groups/orgs from userInfo! GO on", "orgGroupSplit", orgGroupSplit)
+				continue
+			}
+			orgId, _ := strconv.Atoi(orgGroupSplit[0])
+			// Transfer gathered info into OrgRoles map
+			extUser.OrgRoles[int64(orgId)] = org.RoleType(orgGroupSplit[1])
 		}
 	}
 
